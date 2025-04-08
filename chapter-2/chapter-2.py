@@ -98,8 +98,7 @@ def tokenize_text(text: str, preview_length: int = 50, verbose: bool = False) ->
     '''
 
     # This method removes the need for filtering
-    tokens_without_spaces = re.findall(r"\b\w+\b|[,:;?_!\"()\']|--", text)
-    tokens_without_spaces.extend((TOKEN_ENDOFTEXT, TOKEN_UNKNOWN))
+    tokens_without_spaces = re.findall(r"\b\w+\b|[,.:;?_!\"()\']|--", text)
 
     # Printout
     if verbose:
@@ -124,9 +123,13 @@ def create_vocabulary_encoder(tokens: list[str], preview_length: int = 50) -> di
     # Create vocabulary
     vocab = {token: i for i, token in enumerate(sorted(set(tokens)))}
 
+    # Add special tokens
+    vocab[TOKEN_UNKNOWN] = len(vocab)
+    vocab[TOKEN_ENDOFTEXT] = len(vocab)
+
     # Printout
     print(f"Vocabulary size: {len(vocab)}")
-    print(f"First {preview_length} tokens in vocabulary:")
+    print(f"Last {preview_length} tokens in vocabulary:")
     for i, (token, index) in enumerate(vocab.items()):
             if i == preview_length:
                 break
@@ -173,6 +176,8 @@ def decode_tokens(token_ids: list[int], decoder: dict[int, str]) -> str:
     """
     Decodes a list of token IDs into a string using a provided decoder dictionary.
 
+    
+
     Args:
         token_ids (list[int]): A list of integer token IDs to decode.
         decoder (dict): A dictionary mapping token IDs (int) to their corresponding string representations.
@@ -180,7 +185,23 @@ def decode_tokens(token_ids: list[int], decoder: dict[int, str]) -> str:
     Returns:
         str: The decoded string formed by joining the mapped tokens with spaces.
     """
-    return " ".join(decoder[idx] for idx in token_ids)
+    
+    # First pass 
+    text = " ".join(decoder[idx] for idx in token_ids)
+    
+    '''
+    To remove the spaces around punctuation, we use the following regular expression:
+    \s*([.,!?;:])\s*
+
+        1. \s* matches any whitespace (\s) character (space, tab, newline) zero or more times (*)
+        2. ([.,!?;:]) captures the punctuation characters inside the brackets
+        3. \s* matches any whitespace (\s) character (space, tab, newline) zero or more times (*)
+        4. The replacement string is \1, which refers to the first capturing group (the punctuation character)
+           followed by a space.
+    '''
+    text = re.sub(r"\s*([.,!?;:])\s*", r"\1 ", text)  
+
+    return text
 
 
 if __name__ == "__main__":
@@ -198,7 +219,7 @@ if __name__ == "__main__":
         decoder = create_vocabulary_decoder(encoder)
 
         # Test: encode and decode a string
-        test_string = "At Be Begin Burlington"
+        test_string = "At Be Begin Burlington. What is new?"
         encoded = encode_text(test_string, encoder)
         decoded = decode_tokens(encoded, decoder)
 
