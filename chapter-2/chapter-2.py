@@ -9,6 +9,10 @@ import urllib.request
 URL = "https://raw.githubusercontent.com/rasbt/LLMs-from-scratch/main/ch02/01_main-chapter-code/the-verdict.txt"
 FILENAME = "the_verdict.txt"
 
+# Context tokens
+TOKEN_UNKNOWN = '<|unk|>'
+TOKEN_ENDOFTEXT = '<|endoftext|>'
+
 
 def load_text_file(url: str, filename: str, preview_length: int = 100) -> str:
     """
@@ -47,11 +51,9 @@ def load_text_file(url: str, filename: str, preview_length: int = 100) -> str:
         else:
             print(f"File already exists: '{filename}'")
 
-        # Read the file
+        # Read the file and return it
         with open(filename, 'r') as f:
-            text = f.read()
-
-        return text
+            return f.read()
         
     except urllib.error.HTTPError as e:
         print(f"HTTP error: {e.code} - {e.reason}")
@@ -63,8 +65,7 @@ def load_text_file(url: str, filename: str, preview_length: int = 100) -> str:
         print(f"File write error: {e}")
     except Exception as e:
         print(f"Unexpected error: {e}")
-    finally:
-        return ""
+
 
 
 def tokenize_text(text: str, preview_length: int = 50, verbose: bool = False) -> list[str]:
@@ -98,11 +99,12 @@ def tokenize_text(text: str, preview_length: int = 50, verbose: bool = False) ->
 
     # This method removes the need for filtering
     tokens_without_spaces = re.findall(r"\b\w+\b|[,:;?_!\"()\']|--", text)
+    tokens_without_spaces.extend((TOKEN_ENDOFTEXT, TOKEN_UNKNOWN))
 
     # Printout
     if verbose:
         print(f"Number of tokens: {len(tokens_without_spaces)}")
-        print(f"First 10 tokens: {tokens_without_spaces[:preview_length]}")
+        print(f"First {preview_length} tokens: {tokens_without_spaces[:preview_length]}")
 
     return tokens_without_spaces
 
@@ -121,10 +123,10 @@ def create_vocabulary_encoder(tokens: list[str], preview_length: int = 50) -> di
     
     # Create vocabulary
     vocab = {token: i for i, token in enumerate(sorted(set(tokens)))}
-    
+
     # Printout
     print(f"Vocabulary size: {len(vocab)}")
-    print(f"First tokens in vocabulary:")
+    print(f"First {preview_length} tokens in vocabulary:")
     for i, (token, index) in enumerate(vocab.items()):
             if i == preview_length:
                 break
@@ -164,7 +166,7 @@ def encode_text(text: str, encoder: dict[str, int]) -> list[int]:
     Raises:
         KeyError: If a token in the text is not found in the encoder.
     """
-    return [encoder[token] for token in tokenize_text(text) if token in encoder]
+    return [encoder[token] if token in encoder else encoder[TOKEN_UNKNOWN] for token in tokenize_text(text)]
 
 
 def decode_tokens(token_ids: list[int], decoder: dict[int, str]) -> str:
