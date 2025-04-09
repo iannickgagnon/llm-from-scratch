@@ -8,7 +8,7 @@ from chapter_2 import (load_text_file,
                        FILENAME)
 
 # Internal constants
-CONTEXT_SIZE = 5
+CONTEXT_SIZE = 4
 
 
 if __name__ == '__main__':
@@ -19,8 +19,8 @@ if __name__ == '__main__':
     # Initialize the BPE tokenizer
     tokenizer = tiktoken.get_encoding("gpt2")
 
-    # Encode the text
-    encoded_text = tokenizer.encode(text)
+    # Encode the text (remove the 50 first tokens to reproduce the text's example)
+    encoded_text = tokenizer.encode(text)[50:]
 
     # Show the size of the vocabulary
     print(f"Vocabulary size = {len(encoded_text)}")
